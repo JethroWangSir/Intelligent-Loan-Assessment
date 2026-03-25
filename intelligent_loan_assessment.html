@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>視覺化全方位貸款評估與提案儀表板</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 引入 Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- 引入 Font Awesome (Icons) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        // 設定 Tailwind 自訂主題顏色 (玉山綠與晨曦金)
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        emerald: {
+                            50: '#e5f6f5',
+                            100: '#cceceb',
+                            200: '#99d9d8',
+                            300: '#66c6c4',
+                            400: '#33b3b1',
+                            500: '#00a19b', // 企業主色：玉山綠
+                            600: '#00817c',
+                            700: '#00605d',
+                            800: '#00a19b', // 將原本的 800 (Header與標題) 映射至玉山綠
+                            900: '#00403e',
+                        },
+                        gold: {
+                            500: '#d4af37', // 企業輔色：晨曦金
+                            600: '#b5952f',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Noto Sans TC"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f8fafc; }
+        /* 隱藏數字輸入框的上下箭頭 */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        .glass-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body class="text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- 頂部導覽列 -->
+    <header class="bg-emerald-800 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <h1 class="text-xl font-bold tracking-wider">E.SUN BANK <span class="text-sm font-normal text-emerald-200 ml-2">| 智能放款評估系統</span></h1>
+            </div>
+            <div class="text-sm text-emerald-100 hidden sm:block">
+                <i class="fa-solid fa-user-tie mr-1"></i> 行員專用介面
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要內容區 -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- 左側：輸入表單區 (占 4 欄) -->
+        <div class="col-span-1 lg:col-span-4 space-y-6">
+            
+            <!-- 卡片 A：客戶財務狀況 -->
+            <div class="glass-card p-5">
+                <h2 class="text-lg font-bold text-emerald-800 mb-4 border-b pb-2"><i class="fa-solid fa-wallet mr-2"></i>客戶財務狀況</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">平均月收入 (元) <span class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2.5 text-slate-400">$</span>
+                            <input type="text" inputmode="numeric" id="monthly_income" value="60,000" class="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" oninput="formatCurrencyInput(this); calculate()">
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-sm font-medium text-slate-600">既有無擔保債務餘額 (元)</label>
+                            <button type="button" onclick="addDebtField()" class="text-xs font-bold text-emerald-600 hover:text-emerald-800 transition"><i class="fa-solid fa-plus mr-1"></i>新增項目</button>
+                        </div>
+                        <div id="debt_container" class="space-y-2">
+                            <div class="relative flex items-center gap-2">
+                                <input type="text" placeholder="項目(如:A銀行信貸)" class="w-1/3 px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 transition text-sm">
+                                <div class="relative flex-grow">
+                                    <span class="absolute left-3 top-2.5 text-slate-400">$</span>
+                                    <input type="text" inputmode="numeric" value="100,000" class="debt-input w-full pl-8 pr-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" oninput="formatCurrencyInput(this); calculate()">
+                                </div>
+                                <button type="button" onclick="this.parentElement.remove(); calculate();" class="text-slate-400 hover:text-red-500 px-2 transition" title="刪除"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-1">含信用卡循環、其他信貸等</p>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-sm font-medium text-slate-600">既有每月應繳本息 (元)</label>
+                            <button type="button" onclick="addPaymentField()" class="text-xs font-bold text-emerald-600 hover:text-emerald-800 transition"><i class="fa-solid fa-plus mr-1"></i>新增項目</button>
+                        </div>
+                        <div id="payment_container" class="space-y-2">
+                            <div class="relative flex items-center gap-2">
+                                <input type="text" placeholder="項目(如:車貸)" class="w-1/3 px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 transition text-sm">
+                                <div class="relative flex-grow">
+                                    <span class="absolute left-3 top-2.5 text-slate-400">$</span>
+                                    <input type="text" inputmode="numeric" value="5,000" class="payment-input w-full pl-8 pr-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" oninput="formatCurrencyInput(this); calculate()">
+                                </div>
+                                <button type="button" onclick="this.parentElement.remove(); calculate();" class="text-slate-400 hover:text-red-500 px-2 transition" title="刪除"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 卡片 B：貸款方案參數 -->
+            <div class="glass-card p-5">
+                <h2 class="text-lg font-bold text-emerald-800 mb-4 border-b pb-2"><i class="fa-solid fa-file-signature mr-2"></i>貸款方案設定</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">預計申貸金額 (元) <span class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2.5 text-slate-400">$</span>
+                            <input type="text" inputmode="numeric" id="loan_amount" value="800,000" class="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" oninput="formatCurrencyInput(this); calculate()">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-600 mb-1">貸款年限</label>
+                            <select id="loan_term" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white" onchange="calculate()">
+                                <option value="1">1 年</option>
+                                <option value="2">2 年</option>
+                                <option value="3">3 年</option>
+                                <option value="4">4 年</option>
+                                <option value="5">5 年</option>
+                                <option value="6">6 年</option>
+                                <option value="7" selected>7 年</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-600 mb-1">適用年利率 (%) <span class="text-red-500">*</span></label>
+                            <div class="relative">
+                                <input type="number" id="interest_rate" value="2.85" step="0.01" class="w-full pl-3 pr-8 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" oninput="calculate()">
+                                <span class="absolute right-3 top-2.5 text-slate-400">%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 方案 B 比較開關 -->
+                <div class="mt-5 pt-4 border-t border-slate-200 flex items-center justify-between">
+                    <span class="text-sm font-bold text-emerald-800"><i class="fa-solid fa-code-compare mr-2"></i>啟用方案 B 比較</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="enable_scheme_b" class="sr-only peer" onchange="toggleSchemeB()">
+                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                    </label>
+                </div>
+
+                <!-- 方案 B 參數輸入區 (預設隱藏) -->
+                <div id="scheme_b_container" class="hidden mt-4 p-4 bg-emerald-50 rounded-md border border-emerald-100 space-y-4">
+                    <h3 class="text-sm font-bold text-emerald-800 mb-2">方案 B 設定</h3>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">預計申貸金額 (元)</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2.5 text-slate-400">$</span>
+                            <input type="text" inputmode="numeric" id="loan_amount_b" value="800,000" class="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white transition" oninput="formatCurrencyInput(this); calculate()">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-600 mb-1">貸款年限</label>
+                            <select id="loan_term_b" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white" onchange="calculate()">
+                                <option value="1">1 年</option>
+                                <option value="2">2 年</option>
+                                <option value="3">3 年</option>
+                                <option value="4">4 年</option>
+                                <option value="5">5 年</option>
+                                <option value="6">6 年</option>
+                                <option value="7" selected>7 年</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-600 mb-1">適用年利率 (%)</label>
+                            <div class="relative">
+                                <input type="number" id="interest_rate_b" value="2.95" step="0.01" class="w-full pl-3 pr-8 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white transition" oninput="calculate()">
+                                <span class="absolute right-3 top-2.5 text-slate-400">%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="calculate()" class="w-full mt-6 bg-gold-500 hover:bg-gold-600 text-white font-bold py-2.5 rounded-md shadow transition duration-200">
+                    <i class="fa-solid fa-calculator mr-2"></i> 立即重新試算
+                </button>
+            </div>
+
+        </div>
+
+        <!-- 右側：結果展示區 (占 8 欄) -->
+        <div class="col-span-1 lg:col-span-8 space-y-6">
+            
+            <!-- 警示列 (隱藏狀態，有風險時顯示) -->
+            <div id="alert_box" class="hidden bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md shadow-sm">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fa-solid fa-circle-exclamation text-red-500"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-red-700 font-medium" id="alert_msg"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 核心 KPI 指標卡 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- DBR 22 檢核 -->
+                <div class="glass-card p-5 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4 opacity-10"><i class="fa-solid fa-scale-balanced text-6xl"></i></div>
+                    <h3 class="text-sm font-medium text-slate-500 mb-1">DBR 22 倍合規檢核</h3>
+                    <div class="flex items-end space-x-2">
+                        <span id="dbr_status" class="text-2xl font-bold text-emerald-600">合規通過</span>
+                    </div>
+                    <div class="mt-3 text-sm flex justify-between">
+                        <span class="text-slate-500">法規上限額度:</span>
+                        <span class="font-medium" id="dbr_max">$0</span>
+                    </div>
+                    <div class="mt-1 text-sm flex justify-between">
+                        <span class="text-slate-500">尚可申貸餘額:</span>
+                        <span class="font-medium text-emerald-600" id="dbr_available">$0</span>
+                    </div>
+                </div>
+
+                <!-- 收支比檢核 -->
+                <div class="glass-card p-5 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4 opacity-10"><i class="fa-solid fa-chart-pie text-6xl"></i></div>
+                    <h3 class="text-sm font-medium text-slate-500 mb-1">收支負債比 (DTI Ratio)</h3>
+                    <div class="flex items-end space-x-2">
+                        <span id="dti_ratio" class="text-3xl font-bold text-emerald-600">0%</span>
+                        <span id="dti_status" class="text-sm font-medium text-emerald-600 mb-1 bg-emerald-100 px-2 py-0.5 rounded">健康</span>
+                    </div>
+                    <div class="mt-3 text-sm flex justify-between">
+                        <span class="text-slate-500">每月總還款 (含既有):</span>
+                        <span class="font-medium" id="total_monthly_pay">$0</span>
+                    </div>
+                    <div class="mt-1 w-full bg-slate-200 rounded-full h-1.5">
+                        <div id="dti_bar" class="bg-emerald-500 h-1.5 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 還款明細卡片 -->
+            <div class="glass-card p-5">
+                <h3 class="text-lg font-bold text-emerald-800 mb-4 border-b pb-2"><i class="fa-solid fa-money-bill-transfer mr-2"></i>客戶還款明細 (新貸方案)</h3>
+                
+                <!-- 方案 A 結果 -->
+                <div class="mb-4">
+                    <h4 class="text-sm font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-md mb-3 inline-block" id="title_scheme_a">單一方案</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-center divide-y md:divide-y-0 md:divide-x divide-slate-200">
+                        <div class="pt-4 md:pt-0">
+                            <p class="text-sm text-slate-500 mb-1">每月應繳 (本息均攤)</p>
+                            <p class="text-3xl font-bold text-slate-800" id="pay_normal">$0</p>
+                            <p class="text-xs text-slate-400 mt-1" id="normal_months_label">共 84 個月</p>
+                        </div>
+                        <div class="pt-4 md:pt-0">
+                            <p class="text-sm text-slate-500 mb-1">預估總繳利息成本</p>
+                            <p class="text-3xl font-bold text-gold-600" id="total_interest">$0</p>
+                            <p class="text-xs text-slate-400 mt-1">整個貸款期間</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 方案 B 結果 (預設隱藏) -->
+                <div id="result_scheme_b" class="hidden border-t pt-4">
+                    <h4 class="text-sm font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-md mb-3 inline-block">方案 B</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-center divide-y md:divide-y-0 md:divide-x divide-slate-200">
+                        <div class="pt-4 md:pt-0">
+                            <p class="text-sm text-slate-500 mb-1">每月應繳 (本息均攤)</p>
+                            <p class="text-3xl font-bold text-slate-800" id="pay_normal_b">$0</p>
+                            <p class="text-xs text-slate-400 mt-1" id="normal_months_label_b">共 84 個月</p>
+                        </div>
+                        <div class="pt-4 md:pt-0">
+                            <p class="text-sm text-slate-500 mb-1">預估總繳利息成本</p>
+                            <p class="text-3xl font-bold text-emerald-600" id="total_interest_b">$0</p>
+                            <p class="text-xs text-slate-400 mt-1">整個貸款期間</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 視覺化現金流圖表 -->
+            <div class="glass-card p-5">
+                <h3 class="text-lg font-bold text-emerald-800 mb-4 border-b pb-2"><i class="fa-solid fa-chart-line mr-2"></i>預估未來每月現金流變化圖</h3>
+                <div class="relative h-64 w-full">
+                    <canvas id="cashFlowChart"></canvas>
+                </div>
+                <p class="text-xs text-slate-400 text-center mt-3">* 圖表呈現客戶每月薪資在扣除「既有貸款」與「新貸方案」後的剩餘可用生活費變化。</p>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="bg-slate-800 text-slate-400 text-center py-4 text-sm mt-auto">
+        &copy; 2026 E.SUN Bank 內部專用. 此為模擬試算，實際核貸結果依授信審核為準。
+    </footer>
+
+    <!-- JavaScript 邏輯區 -->
+    <script>
+        let myChart = null; // 儲存圖表實例
+
+        // 貨幣格式化工具
+        const formatCurrency = (num) => {
+            return new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num);
+        };
+
+        // 將有逗號的字串轉回純數字的工具
+        const parseCurrency = (val) => {
+            if (!val) return 0;
+            const parsed = parseFloat(val.toString().replace(/,/g, ''));
+            return isNaN(parsed) ? 0 : parsed;
+        };
+
+        // 即時替輸入框加上千分位逗號的工具
+        function formatCurrencyInput(input) {
+            if (input.value === '') return;
+            // 記住游標位置，避免加上逗號後游標亂跳
+            let originalLength = input.value.length;
+            let caretPos = input.selectionStart;
+
+            // 移除所有非數字字元
+            let cleanVal = input.value.replace(/\D/g, '');
+            if (cleanVal === '') {
+                input.value = '';
+                return;
+            }
+            
+            // 重新加入千分位逗號
+            let formattedVal = parseInt(cleanVal, 10).toLocaleString('en-US');
+            input.value = formattedVal;
+
+            // 調整游標位置
+            let newLength = formattedVal.length;
+            caretPos = caretPos + (newLength - originalLength);
+            input.setSelectionRange(caretPos, caretPos);
+        }
+
+        // 動態新增「既有無擔保債務」欄位
+        function addDebtField() {
+            const container = document.getElementById('debt_container');
+            const div = document.createElement('div');
+            div.className = 'relative flex items-center gap-2';
+            div.innerHTML = `
+                <input type="text" placeholder="項目名稱(選填)" class="w-1/3 px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 transition text-sm">
+                <div class="relative flex-grow">
+                    <span class="absolute left-3 top-2.5 text-slate-400">$</span>
+                    <input type="text" inputmode="numeric" value="0" class="debt-input w-full pl-8 pr-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" oninput="formatCurrencyInput(this); calculate()">
+                </div>
+                <button type="button" onclick="this.parentElement.remove(); calculate();" class="text-slate-400 hover:text-red-500 px-2 transition" title="刪除"><i class="fa-solid fa-trash"></i></button>
+            `;
+            container.appendChild(div);
+        }
+
+        // 動態新增「既有每月應繳本息」欄位
+        function addPaymentField() {
+            const container = document.getElementById('payment_container');
+            const div = document.createElement('div');
+            div.className = 'relative flex items-center gap-2';
+            div.innerHTML = `
+                <input type="text" placeholder="項目名稱(選填)" class="w-1/3 px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 transition text-sm">
+                <div class="relative flex-grow">
+                    <span class="absolute left-3 top-2.5 text-slate-400">$</span>
+                    <input type="text" inputmode="numeric" value="0" class="payment-input w-full pl-8 pr-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" oninput="formatCurrencyInput(this); calculate()">
+                </div>
+                <button type="button" onclick="this.parentElement.remove(); calculate();" class="text-slate-400 hover:text-red-500 px-2 transition" title="刪除"><i class="fa-solid fa-trash"></i></button>
+            `;
+            container.appendChild(div);
+        }
+
+        // 切換方案 B 顯示狀態
+        function toggleSchemeB() {
+            const isChecked = document.getElementById('enable_scheme_b').checked;
+            document.getElementById('scheme_b_container').classList.toggle('hidden', !isChecked);
+            document.getElementById('result_scheme_b').classList.toggle('hidden', !isChecked);
+            document.getElementById('title_scheme_a').innerText = isChecked ? '方案 A' : '單一方案';
+            calculate();
+        }
+
+        // 獨立計算單一貸款方案的函數
+        function calcLoanDetail(loanAmount, termYears, annualRate) {
+            const monthlyRate = (annualRate / 100) / 12;
+            const totalMonths = termYears * 12;
+
+            let normalPayment = 0;
+            let totalInterest = 0;
+
+            if (annualRate === 0) {
+                normalPayment = loanAmount / totalMonths;
+                totalInterest = 0;
+            } else {
+                const powNum = Math.pow(1 + monthlyRate, totalMonths);
+                normalPayment = loanAmount * ((monthlyRate * powNum) / (powNum - 1));
+                totalInterest = (normalPayment * totalMonths) - loanAmount;
+            }
+
+            return { normalPayment, totalInterest, normalMonths: totalMonths };
+        }
+
+        // 核心計算函數
+        function calculate() {
+            // 1. 取得輸入數值
+            const income = parseCurrency(document.getElementById('monthly_income').value);
+            
+            // 動態加總所有既有無擔保債務
+            let existingDebt = 0;
+            document.querySelectorAll('.debt-input').forEach(input => {
+                existingDebt += parseCurrency(input.value);
+            });
+
+            // 動態加總所有既有每月應繳本息
+            let existingPayment = 0;
+            document.querySelectorAll('.payment-input').forEach(input => {
+                existingPayment += parseCurrency(input.value);
+            });
+            
+            const isSchemeB = document.getElementById('enable_scheme_b').checked;
+
+            // 方案 A 參數
+            const loanAmountA = parseCurrency(document.getElementById('loan_amount').value);
+            const termYearsA = parseInt(document.getElementById('loan_term').value) || 0;
+            const annualRateA = parseFloat(document.getElementById('interest_rate').value) || 0;
+
+            // 計算方案 A
+            const resA = calcLoanDetail(loanAmountA, termYearsA, annualRateA);
+
+            // 方案 B 參數 (如果有啟用)
+            let resB = null;
+            let loanAmountB = 0, termYearsB = 0, annualRateB = 0;
+            if (isSchemeB) {
+                loanAmountB = parseCurrency(document.getElementById('loan_amount_b').value);
+                termYearsB = parseInt(document.getElementById('loan_term_b').value) || 0;
+                annualRateB = parseFloat(document.getElementById('interest_rate_b').value) || 0;
+                
+                resB = calcLoanDetail(loanAmountB, termYearsB, annualRateB);
+            }
+
+            // 2. 合規檢核計算 (DBR 22) - 以最高申貸金額為準
+            const maxLoanAmount = isSchemeB ? Math.max(loanAmountA, loanAmountB) : loanAmountA;
+            const dbrMax = income * 22;
+            const dbrAvailable = Math.max(0, dbrMax - existingDebt);
+            const isDbrPass = maxLoanAmount <= dbrAvailable;
+
+            // 更新 DBR UI
+            document.getElementById('dbr_max').innerText = formatCurrency(dbrMax);
+            document.getElementById('dbr_available').innerText = formatCurrency(dbrAvailable);
+            const dbrStatusEl = document.getElementById('dbr_status');
+            if (isDbrPass) {
+                dbrStatusEl.innerText = "合規通過";
+                dbrStatusEl.className = "text-2xl font-bold text-emerald-600";
+            } else {
+                dbrStatusEl.innerText = "超過法規上限";
+                dbrStatusEl.className = "text-2xl font-bold text-red-500";
+            }
+
+            // 3. 更新還款明細 UI (方案 A)
+            document.getElementById('pay_normal').innerText = formatCurrency(resA.normalPayment);
+            document.getElementById('normal_months_label').innerText = `共 ${resA.normalMonths} 個月`;
+            document.getElementById('total_interest').innerText = formatCurrency(resA.totalInterest > 0 ? resA.totalInterest : 0);
+
+            // 更新還款明細 UI (方案 B)
+            if (isSchemeB) {
+                document.getElementById('pay_normal_b').innerText = formatCurrency(resB.normalPayment);
+                document.getElementById('normal_months_label_b').innerText = `共 ${resB.normalMonths} 個月`;
+                document.getElementById('total_interest_b').innerText = formatCurrency(resB.totalInterest > 0 ? resB.totalInterest : 0);
+            }
+
+            // 4. 收支負債比計算 (DTI) - 取兩方案中較重的負擔來警示
+            const maxNewPaymentA = resA.normalPayment;
+            const maxNewPaymentB = isSchemeB ? resB.normalPayment : 0;
+            const worstNewPayment = Math.max(maxNewPaymentA, maxNewPaymentB);
+            
+            const totalMonthlyOut = existingPayment + worstNewPayment;
+            const dtiRatio = income > 0 ? (totalMonthlyOut / income) * 100 : 0;
+
+            // 更新 DTI UI
+            document.getElementById('total_monthly_pay').innerText = formatCurrency(totalMonthlyOut);
+            const dtiRatioEl = document.getElementById('dti_ratio');
+            const dtiStatusEl = document.getElementById('dti_status');
+            const dtiBarEl = document.getElementById('dti_bar');
+            
+            dtiRatioEl.innerText = `${dtiRatio.toFixed(1)}%`;
+            dtiBarEl.style.width = `${Math.min(dtiRatio, 100)}%`;
+
+            let isDtiWarning = false;
+            if (dtiRatio <= 40) {
+                dtiRatioEl.className = "text-3xl font-bold text-emerald-600";
+                dtiStatusEl.innerText = "健康";
+                dtiStatusEl.className = "text-sm font-medium text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded";
+                dtiBarEl.className = "bg-emerald-500 h-1.5 rounded-full";
+            } else if (dtiRatio <= 60) {
+                dtiRatioEl.className = "text-3xl font-bold text-gold-600";
+                dtiStatusEl.innerText = "注意";
+                dtiStatusEl.className = "text-sm font-medium text-gold-800 bg-gold-100 px-2 py-0.5 rounded";
+                dtiBarEl.className = "bg-gold-500 h-1.5 rounded-full";
+            } else {
+                dtiRatioEl.className = "text-3xl font-bold text-red-500";
+                dtiStatusEl.innerText = "高風險";
+                dtiStatusEl.className = "text-sm font-medium text-red-800 bg-red-100 px-2 py-0.5 rounded";
+                dtiBarEl.className = "bg-red-500 h-1.5 rounded-full";
+                isDtiWarning = true;
+            }
+
+            // 5. 處理全局警示訊息
+            const alertBox = document.getElementById('alert_box');
+            const alertMsg = document.getElementById('alert_msg');
+            let msgs = [];
+            if (!isDbrPass) msgs.push("申貸金額超過 DBR 22 倍法規限制，建議調降金額或清償部分債務。");
+            if (isDtiWarning) msgs.push("客戶最重收支負債比超過 60%，請留意客戶未來還款能力及風險。");
+            
+            if (msgs.length > 0) {
+                alertBox.classList.remove('hidden');
+                alertMsg.innerHTML = msgs.join('<br>');
+            } else {
+                alertBox.classList.add('hidden');
+            }
+
+            // 6. 更新圖表
+            updateChart(income, existingPayment, isSchemeB, termYearsA, resA, termYearsB, resB);
+        }
+
+        // 繪製/更新圖表函數
+        function updateChart(income, existingPay, isSchemeB, termA, resA, termB, resB) {
+            const ctx = document.getElementById('cashFlowChart').getContext('2d');
+            
+            // 決定顯示的最長年數 (最多10年)
+            let maxTerm = isSchemeB ? Math.max(termA, termB) : termA;
+            const displayYears = Math.min(maxTerm, 10);
+
+            const labels = [];
+            
+            // 方案 A 數據
+            const livingExpenseDataA = [];
+            const newLoanDataA = [];
+            const existingLoanDataA = [];
+
+            // 方案 B 數據
+            const livingExpenseDataB = [];
+            const newLoanDataB = [];
+            
+            for (let i = 1; i <= displayYears; i++) {
+                labels.push(`第 ${i} 年`);
+                
+                // 共用舊債
+                existingLoanDataA.push(existingPay);
+                
+                // 計算 A
+                let currentNewPayA = 0;
+                if (i <= termA) {
+                    currentNewPayA = resA.normalPayment;
+                }
+                newLoanDataA.push(currentNewPayA);
+                let leftOverA = income - existingPay - currentNewPayA;
+                livingExpenseDataA.push(leftOverA > 0 ? leftOverA : 0);
+
+                // 計算 B (若有)
+                if (isSchemeB) {
+                    let currentNewPayB = 0;
+                    if (i <= termB) {
+                        currentNewPayB = resB.normalPayment;
+                    }
+                    newLoanDataB.push(currentNewPayB);
+                    let leftOverB = income - existingPay - currentNewPayB;
+                    livingExpenseDataB.push(leftOverB > 0 ? leftOverB : 0);
+                }
+            }
+
+            let datasets = [];
+
+            if (!isSchemeB) {
+                // 單一方案：顯示原來的堆疊長條圖
+                datasets = [
+                    {
+                        label: '剩餘生活費',
+                        data: livingExpenseDataA,
+                        backgroundColor: '#00a19b', // 企業主色：玉山綠
+                        stack: 'Stack 0',
+                    },
+                    {
+                        label: '本次新貸月繳',
+                        data: newLoanDataA,
+                        backgroundColor: '#d4af37', // Gold 500
+                        stack: 'Stack 0',
+                    },
+                    {
+                        label: '既有債務月繳',
+                        data: existingLoanDataA,
+                        backgroundColor: '#cbd5e1', // Slate 300
+                        stack: 'Stack 0',
+                    }
+                ];
+            } else {
+                // 比較方案：使用群組長條圖 + 折線圖疊加 避免畫面太亂
+                datasets = [
+                    {
+                        type: 'line',
+                        label: '方案A 剩餘生活費',
+                        data: livingExpenseDataA,
+                        borderColor: '#00a19b', // 企業主色：玉山綠
+                        backgroundColor: '#00a19b',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        yAxisID: 'y'
+                    },
+                    {
+                        type: 'line',
+                        label: '方案B 剩餘生活費',
+                        data: livingExpenseDataB,
+                        borderColor: '#0284c7', // Sky 600
+                        backgroundColor: '#0284c7',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        yAxisID: 'y'
+                    },
+                    {
+                        type: 'bar',
+                        label: '方案A 新貸月繳',
+                        data: newLoanDataA,
+                        backgroundColor: '#d4af37',
+                    },
+                    {
+                        type: 'bar',
+                        label: '方案B 新貸月繳',
+                        data: newLoanDataB,
+                        backgroundColor: '#33b3b1', // 搭配的淺綠色
+                    }
+                ];
+            }
+
+            const config = {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', minimumFractionDigits: 0 }).format(context.parsed.y);
+                                    }
+                                    return label;
+                                }
+                            }
+                        },
+                        legend: { position: 'bottom' }
+                    },
+                    scales: {
+                        x: { 
+                            stacked: !isSchemeB 
+                        },
+                        y: { 
+                            stacked: !isSchemeB,
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
+            if (myChart) {
+                myChart.destroy(); // 銷毀舊圖表
+            }
+            myChart = new Chart(ctx, config);
+        }
+
+        // 頁面載入完成後執行第一次計算
+        window.onload = function() {
+            calculate();
+        };
+    </script>
+</body>
+</html>
