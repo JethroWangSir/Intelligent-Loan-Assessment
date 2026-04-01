@@ -111,9 +111,9 @@
         <!-- 左側：輸入表單區 (占 4 欄) -->
         <div class="col-span-1 xl:col-span-4 space-y-6">
             
-            <!-- 卡片 A：客戶財務狀況 -->
+            <!-- 卡片 A：顧客財務狀況 -->
             <div class="glass-card p-5">
-                <h2 class="text-lg font-bold text-emerald-800 mb-4 border-b pb-2"><i class="fa-solid fa-wallet mr-2"></i>客戶財務狀況</h2>
+                <h2 class="text-lg font-bold text-emerald-800 mb-4 border-b pb-2"><i class="fa-solid fa-wallet mr-2"></i>顧客財務狀況</h2>
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-slate-600 mb-1">平均月收入 (元) <span class="text-red-500">*</span></label>
@@ -650,7 +650,7 @@
             const alertMsg = document.getElementById('alert_msg');
             let msgs = [];
             if (!isDbrPass) msgs.push("申貸金額超過 DBR 22 倍法規限制，建議調降金額或清償部分債務。");
-            if (isDtiWarning) msgs.push("客戶最重收支負債比超過 60%，請留意客戶未來還款能力及違約風險。");
+            if (isDtiWarning) msgs.push("顧客最重收支負債比超過 60%，請留意顧客未來還款能力及違約風險。");
             
             if (msgs.length > 0) {
                 alertBox.classList.remove('hidden'); alertMsg.innerHTML = msgs.join('<br>');
